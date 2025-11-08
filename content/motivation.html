@@ -1,0 +1,42 @@
+<h2>Motivation</h2>
+<ul>
+  <li><b>Reinforcement Learning (RL)</b> made strong progress in robotics, biology, and language.
+      In <b>scientific applications with limited data</b>, RL struggles with:
+    <ol>
+      <li>low sample efficiency,</li>
+      <li>weak alignment with physical laws, and</li>
+      <li>limited theoretical guarantees.</li>
+    </ol>
+  </li>
+  <li>Even with reward shaping, <b>Model-free RL</b> lacks built-in physics priors and remains sample-inefficient.</li>
+  <li><b>Model-based RL</b> can be efficient but often requires exact reward functionals/gradients or trajectory restarts.</li>
+  <li>New approach: RL → <b>continuous-time control formulation</b> → Hamiltonian <b>differential dual</b> → algorithm
+      ⇒ <b>physics priors</b>, sample-efficient updates, and <b>pointwise</b> learning.</li>
+</ul>
+
+<h2>Physics Intuition: From Newton to Hamiltonian Dual Control</h2>
+<p>Newton's law $F = m\ddot{s}$ describes motion via <em>forces</em>.
+   Lagrangian mechanics reformulates via <em>energies</em> and stationary action:</p>
+<div class="code">
+$\mathcal{S}[s] = \int_0^T \mathcal{L}(s,\dot{s},t)\,dt,\quad
+\frac{\partial \mathcal{L}}{\partial s} = \frac{d}{dt}\frac{\partial \mathcal{L}}{\partial \dot{s}}
+\;\text{(Euler--Lagrange)}.$
+
+For $\mathcal{L}=\tfrac{1}{2}m\|\dot{s}\|^2-\mathcal{V}(s)$, this reduces to
+$m\ddot{s}=-\nabla\mathcal{V}(s)$.
+</div>
+<p>Viewing $a=\dot{s}$ makes it a <em>continuous-time control</em> problem; Hamiltonian mechanics is the dual with
+   value gradients as momenta and symplectic flow—our bridge to continuous-time RL.</p>
+
+<h2>Revisit to TD error</h2>
+<div class="code">
+For $s' = s + \Delta_t f(s,a)$, with $\Delta_t=1$:
+$\underbrace{r(s,a)+V(s')-V(s)}_{\text{TD error}}
+\approx r(s,a) + f(s,a)\,\partial_s V(s)
+= -\,\mathcal{H}\!\left(s,-\partial_s V(s),a\right)$
+</div>
+<ul>
+  <li>Local critic signal is (minus) the Hamiltonian at the value gradient.</li>
+  <li>As $\Delta_t\to 0$: matches continuous-time $q$.</li>
+  <li>Suggests <em>local</em>, physics-aligned targets.</li>
+</ul>

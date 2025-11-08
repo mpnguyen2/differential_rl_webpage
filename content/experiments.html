@@ -1,0 +1,27 @@
+<h2>Experimental Setups</h2>
+<ul>
+    <li><b>(1) Surface Modeling</b> (object-level)</li>
+    <li><b>(2) Grid-Based Modeling</b> (system-level / PDE)</li>
+    <li><b>(3) Molecular Dynamics</b> (atomistic)</li>
+</ul>
+<ul>
+    <li><b>Baselines (12):</b> TRPO, PPO, SAC, DDPG, CrossQ, TQC — standard &amp; reward-shaping variants</li>
+    <li><b>Budgets:</b> 100k (surface, grid) / 5k (molecular)</li>
+    <li><b>Metric:</b> terminal cost $\\mathcal{F}(s)$ (lower is better)</li>
+</ul>
+
+<h2>Results: visualization</h2>
+<div class="figure-row">
+    <img class="figure" src="images/benchmarks_surface.png" alt="Surface modeling" />
+    <img class="figure" src="images/benchmarks_grid.png" alt="Grid/PDE" />
+    <img class="figure" src="images/benchmarks_molecule.png" alt="Molecular dynamics" />
+</div>
+<p class="small">Put your PNGs under <code>/images</code>. Filenames above match your slide.</p>
+
+<h2>Results: numerical (lower is better)</h2>
+<ul>
+    <li>dfPO achieves the best terminal costs on all 3 tasks; next-best varies (CrossQ/TQC/DDPG/TRPO).</li>
+    <li>Reward-shaping helps baselines but remains below dfPO.</li>
+    <li>dfPO explores to lower costs with moderate variance.</li>
+</ul>
+<!-- You can later embed an HTML table here if you want the full numbers. -->

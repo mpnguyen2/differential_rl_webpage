@@ -1,0 +1,10 @@
+<h2>Algorithm: dfPO (stage-wise)</h2>
+<ol>
+  <li>Initialize replay queue $\mathcal{M}$; random $g_{\theta_0}$; set $G_{\theta_0}=\mathrm{Id}+\Delta_t\,S\,\nabla g_{\theta_0}$.</li>
+  <li>For $k=1\ldots H-1$: query $\mathcal{B}$ at $N_k$ seeds; add stability samples; fit $g_{\theta_k}$ with smooth $L^1$; set $G_{\theta_k}$.</li>
+  <li>Output $G_{\theta_{H-1}}$.</li>
+</ol>
+<ul>
+  <li>Trust-region flavor via pointwise random samples.</li>
+  <li>Policy/dynamics/reward linked via gradients (automatic differentiation).</li>
+</ul>

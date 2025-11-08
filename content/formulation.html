@@ -1,0 +1,41 @@
+<h2>Differential Control Formulation</h2>
+<div class="code">
+    $$
+    \max_{\pi}\; \mathbb{E}\!\Big[ \int_0^T r(s_t,a_t)\,dt \Big]
+    \quad \text{s.t. }\; \dot{s}_t = f(s_t,a_t;\epsilon)
+    $$
+
+    $$
+    \mathcal{H}(s,p,a) = p^\top f(s,a) - r(s,a), \qquad
+    a^*(s,p): \partial_a \mathcal{H}=0,\ \text{define }\mathcal{h}(s,p).
+    $$
+
+    $$
+    \dot{s}= \partial_p \mathcal{h}, \qquad \dot{p}= -\partial_s \mathcal{h}.
+    $$
+</div>
+
+<div class="code">
+    With $x=(s,p)$ and symplectic
+    $S=\begin{bmatrix}0 & I \\ -I & 0\end{bmatrix}$:
+    $$
+    \dot x = S\,\nabla \mathcal{h}(x)
+    \;\Rightarrow\;
+    x_{n+1}=x_n+\Delta_t\,S\,\nabla \mathcal{h}(x_n)
+    $$
+</div>
+
+<h2>Reinforcement learning as an abstract problem $\mathcal{D}$</h2>
+<p>
+    Learn $G$ so that $x, G(x), \dots, G^{(H-1)}(x)$ trace an optimal trajectory.
+</p>
+<div class="code">
+    $$
+    \boxed{\, G = \mathrm{Id} + \Delta t\, S\, \nabla g \,}
+    $$
+</div>
+<p>
+    $g(x)\approx \mathcal{h}(x)$ is a learnable score; $S$ injects physics priors.
+    A query environment $\mathcal{B}$ returns rollouts $\{G_\theta^{(k)}(x),\, g(G_\theta^{(k)}(x))\}$ for segment-wise
+    learning.
+</p>

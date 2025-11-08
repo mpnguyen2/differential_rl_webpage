@@ -1,0 +1,23 @@
+<h2>Pointwise Convergence</h2>
+<div class="code">
+  Learn $g_{\theta_k}$ so $G_{\theta_k}=\mathrm{Id} + \Delta t\,S\nabla g_{\theta_k}$ approximates
+  $G=\mathrm{Id} + \Delta t\,S\nabla g$.
+
+  If $G, G_{\theta_k}$ are $L$-Lipschitz and budgets satisfy transfer, with prob $\ge 1-\delta$:
+  $\mathbb{E}\Vert G_{\theta_k}^{(j)}(X) - G^{(j)}(X)\Vert \lt \dfrac{j L^j \epsilon}{L-1}$, $1\le j\le k$.
+</div>
+
+<h2>Sample Complexity &amp; Regret</h2>
+<div class="code">
+  With $N_k=\mathcal{O}(\epsilon^{-\mu})$ and horizon $H$:
+  General: $N_k=\mathcal{O}(\epsilon^{-(2d+4)}) \Rightarrow
+  \text{Regret}=\mathcal{O}(K^{(2d+3)/(2d+4)})$.
+  Restricted: $N_k=\mathcal{O}(\epsilon^{-6}) \Rightarrow \text{Regret}=\mathcal{O}(K^{5/6})$.
+</div>
+
+<h2>Two Settings: Rates &amp; Assumptions</h2>
+<ul>
+  <li>Minimax lower bound $\Omega(K^{(d+1)/(d+2)})$ (Lipschitz–MDP).</li>
+  <li>Dimension-free faster rates need stronger smoothness.</li>
+  <li>Linear-bound mild; weak convexity holds for many NN classes; Hamiltonian structure can support it.</li>
+</ul>
