@@ -1,23 +1,197 @@
-<h2>Pointwise Convergence</h2>
-<div class="code">
-  Learn $g_{\theta_k}$ so $G_{\theta_k}=\mathrm{Id} + \Delta t\,S\nabla g_{\theta_k}$ approximates
-  $G=\mathrm{Id} + \Delta t\,S\nabla g$.
+<style>
+  .figure-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .figure {
+    width: 30%;
+    height: auto;          /* keep aspect */
+    max-width: 320px;      /* clamp visual size */
+    justify-self: center;  /* center each image cell */
+  }
+</style>
 
-  If $G, G_{\theta_k}$ are $L$-Lipschitz and budgets satisfy transfer, with prob $\ge 1-\delta$:
-  $\mathbb{E}\Vert G_{\theta_k}^{(j)}(X) - G^{(j)}(X)\Vert \lt \dfrac{j L^j \epsilon}{L-1}$, $1\le j\le k$.
+<h2 id="pointwise-convergence">Pointwise Convergence</h2>
+
+<p><b>Derivative-transfer objective.</b>
+  Learn <span class="math">\( g_{\theta_k} \)</span> so that
+  <span class="math">\( G_{\theta_k}=\mathrm{Id}+\Delta_t\,S\,\nabla g_{\theta_k} \)</span>
+  approximates
+  <span class="math">\( G=\mathrm{Id}+\Delta_t\,S\,\nabla g \)</span> pointwise.
+</p>
+
+<p><b>Theorem (pointwise convergence).</b>
+  Assume <span class="math">\(G,\,G_{\theta_k}\)</span> are <span class="math">\(L\)</span>-Lipschitz and the stagewise budgets
+  <span class="math">\(N_k\)</span> satisfy the transfer criteria. Then with probability
+  <span class="math">\( \ge 1-\delta \)</span>:
+</p>
+<div class="math">
+\[
+\mathbb{E}_X\left\|G_{\theta_k}^{(j)}(X)-G^{(j)}(X)\right\|
+\;<\;
+\frac{j\,L^{j}\,\epsilon}{L-1},
+\qquad 1\le j\le k.
+\]
 </div>
 
-<h2>Sample Complexity &amp; Regret</h2>
-<div class="code">
-  With $N_k=\mathcal{O}(\epsilon^{-\mu})$ and horizon $H$:
-  General: $N_k=\mathcal{O}(\epsilon^{-(2d+4)}) \Rightarrow
-  \text{Regret}=\mathcal{O}(K^{(2d+3)/(2d+4)})$.
-  Restricted: $N_k=\mathcal{O}(\epsilon^{-6}) \Rightarrow \text{Regret}=\mathcal{O}(K^{5/6})$.
+<p><b>Key idea: 3-term decomposition (stage \(k{+}1\)).</b></p>
+<div class="math">
+\[
+\begin{aligned}
+\mathbb{E}\,\big\|G_{\theta_{k+1}}^{(k+1)}(X)-G^{(k+1)}(X)\big\|
+&\le
+\big\|G_{\theta_{k+1}}(G_{\theta_{k+1}}^{(k)}(X)) - G_{\theta_{k+1}}(G_{\theta_k}^{(k)}(X))\big\| \\
+&\quad+\big\|G_{\theta_{k+1}}(G_{\theta_k}^{(k)}(X)) - G(G_{\theta_k}^{(k)}(X))\big\| \\
+&\quad+\big\|G(G_{\theta_k}^{(k)}(X)) - G(G^{(k)}(X))\big\| \\[6pt]
+&\le
+L\,\underbrace{\big\|G_{\theta_{k+1}}^{(k)}(X)-G_{\theta_k}^{(k)}(X)\big\|}_{\text{replay drift}}
+\;+\;
+\underbrace{\big\|G_{\theta_{k+1}}(G_{\theta_k}^{(k)}(X)) - G(G_{\theta_k}^{(k)}(X))\big\|}_{\text{supervised error}} \\
+&\qquad +\;
+L\,\underbrace{\big\|G_{\theta_k}^{(k)}(X)-G^{(k)}(X)\big\|}_{\text{inductive propagation}}.
+\end{aligned}
+\]
 </div>
 
-<h2>Two Settings: Rates &amp; Assumptions</h2>
+<ul class="small">
+  <li><em>Replay drift</em>: controlled by replaying anchors where the prior policy performs well.</li>
+  <li><em>Supervised error</em>: reduced via stagewise training of <span class="math">\( g_{\theta_{k+1}} \)</span>.</li>
+  <li><em>Inductive propagation</em>: Lipschitz continuity propagates past-stage errors forward.</li>
+</ul>
+
+<h2 id="sample-regret">Sample Complexity &amp; Regret Bounds</h2>
+<p><b>Goal.</b> Bound cumulative regret
+  <span class="math">$ \mathrm{Regret}(K)=\sum_{k=1}^{K}\big(V(s^k)-V_{\pi^k}(s^k)\big) $</span>
+  using stagewise sample budgets <span class="math">$ N_k=\mathcal{O}(\epsilon^{-\mu}) $</span> with fixed rollout horizon <span class="math">$ H $</span>.
+</p>
+
+<p><b>Stagewise Sample Budget.</b>
+Let <span class="math">$ N(g,\mathcal{H},\epsilon,\delta) $</span> be the minimal number of samples to train
+<span class="math">$ h\in\mathcal{H} $</span> on <span class="math">$ X\sim\rho_0 $</span> such that
+<span class="math">$ \mathbb{P}\!\left(\lVert \nabla g(X)-\nabla h(X)\rVert<\epsilon\right)\ge 1-\delta $</span>.
+Define
+</p>
+<div class="math">
+$$
+N_1 = N(g,\mathcal{H}_1,\epsilon,\delta),\qquad
+N_k = \max\Big\{N(g_{\theta_{k-1}},\mathcal{H}_k,\epsilon,\tfrac{\delta_{k-1}}{k-1}),
+\,N(g,\mathcal{H}_k,\epsilon,\tfrac{\delta_{k-1}}{k-1})\Big\}.
+$$
+</div>
+
+<p><b>Two Hypothesis Settings.</b></p>
+<ol>
+  <li><b>General&nbsp;<span class="math">$ \mathcal{H}_k $</span>:</b> usual NN class, <span class="math">$ g,h\in C^2 $</span> with bounded weights
+    <div class="math">
+    $$
+    N_k = \mathcal{O}\!\big(\epsilon^{-(2d+4)}\big)
+    \;\Rightarrow\;
+    \mathrm{Regret}(K)=\mathcal{O}\!\Big(K^{\frac{2d+3}{2d+4}}\Big).
+    $$
+    </div>
+  </li>
+  <li><b>Restricted&nbsp;<span class="math">$ \mathcal{H}_k $</span>:</b> <span class="math">$ h-g_k $</span> is linearly bounded &amp; <span class="math">$ p $</span>-weakly convex with <span class="math">$ p\ge 2d $</span>
+    <div class="math">
+    $$
+    N_k = \mathcal{O}\!\big(\epsilon^{-6}\big)
+    \;\Rightarrow\;
+    \mathrm{Regret}(K)=\mathcal{O}\!\big(K^{5/6}\big).
+    $$
+    </div>
+  </li>
+</ol>
+
+<p><b>Sketch.</b> Sample complexity <span class="math">$ \Rightarrow $</span> pointwise generalization
+<span class="math">$ \Rightarrow \mathcal{O}(\epsilon) $</span> per-step loss
+<span class="math">$ \Rightarrow $</span> regret via <span class="math">$ H $</span>-step rollouts across <span class="math">$ K $</span> episodes.
+</p>
+
+<hr class="subtle" />
+
+<h2 id="setting-1">Setting 1: General <span class="math">$ \mathcal{H}_k $</span>, <span class="math">$ N_k=\mathcal{O}(\epsilon^{-(2d+4)}) $</span></h2>
+<p><b>Goal.</b> Control <span class="math">$ \lVert \nabla h - \nabla g \rVert $</span> via pointwise bounds on <span class="math">$ |h-g| $</span>.</p>
+
+<p><b>Flow.</b> Local bounds on <span class="math">$ |h-g| $</span> at random samples
+<span class="math">$ X_1,\dots,X_m $</span> and anchor <span class="math">$ Y $</span>
+<span class="math">$ \Rightarrow $</span> gradient control at <span class="math">$ Y $</span>
+<span class="math">$ \Rightarrow $</span> global expectation via Rademacher complexity
+<span class="math">$ \Rightarrow $</span> dimension-dependent rate
+<span class="math">$ N_k=\mathcal{O}(\epsilon^{-(2d+4)}) $</span>.
+</p>
+
 <ul>
-  <li>Minimax lower bound $\Omega(K^{(d+1)/(d+2)})$ (Lipschitz–MDP).</li>
-  <li>Dimension-free faster rates need stronger smoothness.</li>
-  <li>Linear-bound mild; weak convexity holds for many NN classes; Hamiltonian structure can support it.</li>
+  <li><b>Second-order Taylor (around anchor <span class="math">$ Y $</span>):</b>
+    <div class="math">
+    $$
+    h(X_k)-g(X_k)\approx
+    \big(h(Y)-g(Y)\big)
+    + \langle \nabla h(Y)-\nabla g(Y),\, X_k-Y\rangle
+    + \mathcal{O}(\lVert X_k-Y\rVert^2).
+    $$
+    </div>
+  </li>
+  <li><b>Conic technique.</b> With favorable alignment,
+    <div class="math">
+    $$
+    \langle \nabla h(Y)-\nabla g(Y),\, X_k-Y\rangle
+    \;\ge\; (1-\epsilon_2)\,\lVert \nabla h(Y)-\nabla g(Y)\rVert\,\lVert X_k-Y\rVert.
+    $$
+    </div>
+    For <span class="math">$ \lVert X_k-Y\rVert\in[\epsilon_1/2,\epsilon_1] $</span>, the cone-hit probability
+    is at least <span class="math">$ c_1\,\epsilon_1^d\,\epsilon_2 $</span>, so
+    <span class="math">$ m=\mathcal{O}(\epsilon_1^{-d}) $</span> suffices.
+  </li>
+</ul>
+
+<div class="figure-row">
+  <img class="figure" src="images/conic_technique.png" alt="Conic alignment illustration" />
+</div>
+
+<hr class="subtle" />
+
+<h2 id="setting-2">Setting 2: Restricted <span class="math">$ \mathcal{H}_k $</span>, <span class="math">$ N_k=\mathcal{O}(\epsilon^{-6}) $</span></h2>
+
+<p><b>Assumptions.</b> Let <span class="math">$ u=h-g $</span>. Then</p>
+<div class="math">
+$$
+|u(y)-u(x)| \le C\,\lVert \nabla u(x)\rVert\,\lVert y-x\rVert
+\quad\text{(linearly bounded)}
+$$
+$$
+u(y) \ge u(x) + \nabla u(x)^\top(y-x) - C\,\lVert y-x\rVert^p,\quad p\ge 2d
+\quad\text{($p$-weakly convex).}
+$$
+</div>
+
+<p><b>Inductive scheme.</b> At step <span class="math">$ k $</span>, bound
+<span class="math">$ \lVert\nabla h - \nabla g\rVert \lesssim \epsilon^{\beta_k} $</span> at anchors using clipped losses
+</p>
+<div class="math">
+$$
+\phi_k(y,\hat y)=\mathrm{clip}\!\big(|y-\hat y|,\,0,\,C\epsilon^{\alpha+\beta_k}\big)^{d},
+\qquad \alpha=\tfrac{1}{d}.
+$$
+</div>
+
+<ol>
+  <li>Use weak convexity + linear bound + conic argument (as in Setting&nbsp;1) to convert nearby value gaps into first-order control at anchors.</li>
+  <li>Apply Rademacher bounds using Lipschitz constants of <span class="math">$ \phi_k $</span>.</li>
+  <li>Inductively obtain <span class="math">$ \beta_{k+1}=\beta_k+1/d $</span> so
+      <span class="math">$ \lVert \nabla h(Y)-\nabla g(Y)\rVert \le C\,\epsilon^{\alpha+\beta_{k+1}} $</span>.</li>
+  <li>After <span class="math">$ d $</span> steps, <span class="math">$ \beta_d=1 $</span>
+      <span class="math">$ \Rightarrow $</span> <span class="math">$ N=\mathcal{O}(\epsilon^{-6}) $</span>, independent of <span class="math">$ d $</span>.</li>
+</ol>
+
+<hr class="subtle" />
+
+<h2 id="rates-assumptions">Two Settings: Rates &amp; Assumptions</h2>
+<ul>
+  <li>Under Lipschitz–MDP conditions, the minimax lower bound is
+      <span class="math">$ \Omega\!\big(K^{\frac{d+1}{d+2}}\big) $</span>. Our general-case regret
+      <span class="math">$ \mathcal{O}\!\big(K^{\frac{2d+3}{2d+4}}\big) $</span> is close despite a different approach.</li>
+  <li>Dimension-free faster rates require stronger smoothness (e.g., kernelized / no-regret analyses).</li>
+  <li><b>Linearly bounded</b> is mild: it holds for Lipschitz <span class="math">$ h,g $</span> outside zero-gradient sets (measure-zero under smoothness).</li>
+  <li><b>Weak convexity</b> covers convex functions and many NN classes with convex activations (e.g., ReLU); Hamiltonian structure can further justify it. Sharper rates are possible with refined arguments.</li>
 </ul>

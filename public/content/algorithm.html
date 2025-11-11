@@ -1,10 +1,60 @@
-<h2>Algorithm: dfPO (stage-wise)</h2>
-<ol>
-  <li>Initialize replay queue $\mathcal{M}$; random $g_{\theta_0}$; set $G_{\theta_0}=\mathrm{Id}+\Delta_t\,S\,\nabla g_{\theta_0}$.</li>
-  <li>For $k=1\ldots H-1$: query $\mathcal{B}$ at $N_k$ seeds; add stability samples; fit $g_{\theta_k}$ with smooth $L^1$; set $G_{\theta_k}$.</li>
-  <li>Output $G_{\theta_{H-1}}$.</li>
+<h2 id="dfpo">Algorithm: dfPO (stage-wise)</h2>
+
+<p><b>Overview.</b> Differential policy optimization (dfPO) is a “time-expansion (Dijkstra-like)” method that
+updates the policy using on-policy samples chosen per stage so that policy quality improves each iteration.
+Like TRPO, it has a trust-region flavor; unlike TRPO, dfPO focuses on pointwise gradient estimates, making it
+simpler to implement and optimize in practice.</p>
+
+<p><b>Inputs.</b> Environment <span class="math">\( \mathcal{B} \)</span>, steps per episode
+<span class="math">\( H \)</span>, time step <span class="math">\( \Delta_t \)</span>, stage budgets
+<span class="math">\( N_k \)</span>, hypothesis classes <span class="math">\( \mathcal{H}_k \)</span>.
+<br><b>Output.</b> Neural policy <span class="math">\( G_{\theta} \)</span> approximating the optimal
+<span class="math">\( G \)</span>.</p>
+
+<ol class="algo">
+  <li><b>Initialize.</b> Create empty replay memory <span class="math">\( \mathcal{M} \)</span>.
+      Initialize a random scoring function <span class="math">\( g_{\theta_0} \)</span>.
+      Set the initial policy via autodiff:
+      <span class="math">\( G_{\theta_0} = \mathrm{Id} + \Delta_t\, S \nabla g_{\theta_0} \)</span>.
+  </li>
+
+  <li><b>For stages</b> <span class="math">\( k = 1, \dots, H-1 \)</span>:
+    <ol>
+      <li><b>Rollout with previous policy.</b> Sample
+          <span class="math">\( N_k \)</span> seeds
+          <span class="math">\( \{X^i\}_{i=1}^{N_k} \)</span> and query
+          <span class="math">\( \mathcal{B} \)</span> using
+          <span class="math">\( G_{\theta_{k-1}} \)</span> to obtain trajectories
+          <span class="math">\( \{ G_{\theta_{k-1}}^{(j)}(X^i) \}_{j=0}^{H-1} \)</span> and scores
+          <span class="math">\( \{ g(G_{\theta_{k-1}}^{(j)}(X^i)) \}_{j=0}^{H-1} \)</span>.
+      </li>
+      <li><b>Supervision at the current stage.</b> Add labeled samples to
+          <span class="math">\( \mathcal{M} \)</span>:
+          <span class="math">\( (x,y) = \big(G_{\theta_{k-1}}^{(k-1)}(X^i),\, g(G_{\theta_{k-1}}^{(k-1)}(X^i))\big) \)</span>.
+      </li>
+      <li><b>Stability (trust-region behavior).</b> Also add, for
+          <span class="math">\( j = 1,\dots,k-2 \)</span>,
+          <span class="math">\( (x,y) = \big(G_{\theta_{k-1}}^{(j)}(X^i),\, g_{\theta_{k-1}}(G_{\theta_{k-1}}^{(j)}(X^i))\big) \)</span>
+          so the new policy does not drift where the previous policy already performs well.
+      </li>
+      <li><b>Fit the stage model.</b> Train
+          <span class="math">\( g_{\theta_k} \in \mathcal{H}_k \)</span> on
+          <span class="math">\( \mathcal{M} \)</span> using a smooth
+          <span class="math">\( L^1 \)</span> (Huber) loss.
+      </li>
+      <li><b>Update policy.</b> Set
+          <span class="math">\( G_{\theta_k} = \mathrm{Id} + \Delta_t\, S \nabla g_{\theta_k} \)</span>
+          via automatic differentiation; advance <span class="math">\( k \leftarrow k+1 \)</span>.
+      </li>
+    </ol>
+  </li>
+
+  <li><b>Return.</b> <span class="math">\( G_{\theta_{H-1}} = \mathrm{Id} + \Delta_t\, S \nabla g_{\theta_{H-1}} \)</span>.</li>
 </ol>
-<ul>
-  <li>Trust-region flavor via pointwise random samples.</li>
-  <li>Policy/dynamics/reward linked via gradients (automatic differentiation).</li>
+
+<ul class="notes">
+  <li>TRPO-like stability emerges from pointwise anchors and replayed stability samples (a trust-region in sample space).</li>
+  <li>Policy, dynamics, and reward are linked through gradients; dfPO uses automatic differentiation to compute
+      <span class="math">\( \nabla g \)</span> and form the policy update
+      <span class="math">\( G_{\theta} = \mathrm{Id} + \Delta_t\, S \nabla g_{\theta} \)</span>.</li>
 </ul>

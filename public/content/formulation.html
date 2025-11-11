@@ -1,41 +1,85 @@
-<h2>Differential Control Formulation</h2>
-<div class="code">
-    $$
-    \max_{\pi}\; \mathbb{E}\!\Big[ \int_0^T r(s_t,a_t)\,dt \Big]
-    \quad \text{s.t. }\; \dot{s}_t = f(s_t,a_t;\epsilon)
-    $$
+<h2 id="diff-rl">Differential Reinforcement Learning</h2>
 
-    $$
-    \mathcal{H}(s,p,a) = p^\top f(s,a) - r(s,a), \qquad
-    a^*(s,p): \partial_a \mathcal{H}=0,\ \text{define }\mathcal{h}(s,p).
-    $$
-
-    $$
-    \dot{s}= \partial_p \mathcal{h}, \qquad \dot{p}= -\partial_s \mathcal{h}.
-    $$
-</div>
-
-<div class="code">
-    With $x=(s,p)$ and symplectic
-    $S=\begin{bmatrix}0 & I \\ -I & 0\end{bmatrix}$:
-    $$
-    \dot x = S\,\nabla \mathcal{h}(x)
-    \;\Rightarrow\;
-    x_{n+1}=x_n+\Delta_t\,S\,\nabla \mathcal{h}(x_n)
-    $$
-</div>
-
-<h2>Reinforcement learning as an abstract problem $\mathcal{D}$</h2>
+<h3 id="problem-formulation">Problem formulation</h3>
 <p>
-    Learn $G$ so that $x, G(x), \dots, G^{(H-1)}(x)$ trace an optimal trajectory.
+  A standard RL agent interacts with an MDP
+  <span class="math">\((\mathcal{S},\mathcal{A},\mathbb{P},r,\rho_0)\)</span>.
+  At step <span class="math">\(k\)</span>, it samples
+  <span class="math">\(s_0\sim\rho_0,\; a_k\sim\pi(a_k\!\mid\!s_k),\; s_{k+1}\sim\mathbb{P}(s_{k+1}\!\mid\!s_k,a_k)\)</span>,
+  maximizing expected return
+  <span class="math">\(\mathcal{J}=\mathbb{E}_\pi\!\left[\sum_{k=0}^{H-1} r(s_k,a_k)\right]\)</span>.
+  The value under policy <span class="math">\(\pi\)</span> is
+  <span class="math">\(V_\pi(s)=\mathbb{E}[\sum_{k=0}^{H-1} r(s_k,a_k)\mid s_0=s]\)</span>, and
+  <span class="math">\(V(s)=\max_\pi V_\pi(s)\)</span>.
 </p>
-<div class="code">
-    $$
-    \boxed{\, G = \mathrm{Id} + \Delta t\, S\, \nabla g \,}
-    $$
+<p>
+  We move to a continuous-time view by associating timestamps
+  <span class="math">\(t_k=k\Delta_t\)</span>, terminal time
+  <span class="math">\(T=H\Delta_t\)</span>, and approximating the sum with an integral:
+</p>
+<div class="math">
+\[
+\max_{\pi}\;\mathbb{E}\!\left[\int_0^T r(s_t,a_t)\,dt\right]
+\quad\text{s.t.}\;\;\dot{s}_t=f(s_t,a_t).
+\]
+</div>
+
+<h3 id="hamiltonian">Hamiltonian dual and reduced system</h3>
+<p>
+  By Pontryagin’s Maximum Principle, introduce adjoint
+  <span class="math">\(p\)</span> and define the Hamiltonian
+  <span class="math">\(\mathcal{H}(s,p,a)=p^\top f(s,a)-r(s,a)\)</span>.
+  The optimal action <span class="math">\(a^*(s,p)\)</span> satisfies
+  <span class="math">\(\partial_a \mathcal{H}(s,p,a^*)=0\)</span>.
+  Substituting back yields the reduced Hamiltonian
+  <span class="math">\(\mathcal{h}(s,p)=\mathcal{H}(s,p,a^*(s,p))\)</span>, and the
+  differential dual system:
+</p>
+<div class="math">
+\[
+\begin{bmatrix}\dot{s}\\ \dot{p}\end{bmatrix}
+=
+\begin{bmatrix}\partial_p \mathcal{h}(s,p)\\[2pt]-\partial_s \mathcal{h}(s,p)\end{bmatrix},
+\qquad
+\partial_a \mathcal{H}(s,p,a^*)=0.
+\]
 </div>
 <p>
-    $g(x)\approx \mathcal{h}(x)$ is a learnable score; $S$ injects physics priors.
-    A query environment $\mathcal{B}$ returns rollouts $\{G_\theta^{(k)}(x),\, g(G_\theta^{(k)}(x))\}$ for segment-wise
-    learning.
+  Let <span class="math">\(x=(s,p)\)</span> and the canonical symplectic matrix
+  <span class="math">\(S=\begin{bmatrix}0&I\\ -I&0\end{bmatrix}\)</span>. Then the dynamics compactly read
+</p>
+<div class="math">
+\[
+\dot{x}=S\,\nabla \mathcal{h}(x),
+\qquad
+x_{n+1}=x_n+\Delta_t\,S\,\nabla \mathcal{h}(x_n)=:G(x_n).
+\]
+</div>
+
+<h3 id="abstract-problem">Abstract policy learning problem \(\mathcal{D}\)</h3>
+<p>
+  Our learning goal is to find an operator
+  <span class="math">\(G:\Omega\to\Omega\)</span> such that the trajectory
+  <span class="math">\(x,\,G(x),\,G^{(2)}(x),\ldots,G^{(H-1)}(x)\)</span>
+  is optimal (with <span class="math">\(G^{(k)}\)</span> the <span class="math">\(k\)</span>-fold composition).
+  We approximate the reduced Hamiltonian with a learnable score
+  <span class="math">\(g(x)\approx \mathcal{h}(x)\)</span>, leading to the first-order policy form
+</p>
+<div class="math">
+\[
+\boxed{\, G = \mathrm{Id} + \Delta_t\, S\, \nabla g \,}
+\]
+</div>
+<p>
+  Here, <span class="math">\(S\)</span> injects a physics prior via the symplectic structure while
+  <span class="math">\(g\)</span> is learned from data.
+</p>
+
+<p><b>Query environment \(\mathcal{B}\).</b>
+  Given a policy <span class="math">\(G_\theta\)</span> and seed
+  <span class="math">\(x\sim\rho_0\)</span>, the environment returns rollouts
+  <span class="math">\(\{G_\theta^{(k)}(x)\}_{k=0}^{H-1}\)</span> and their scores
+  <span class="math">\(\{g(G_\theta^{(k)}(x))\}_{k=0}^{H-1}\)</span>.
+  This enables segment-wise supervision of the score <span class="math">\(g\)</span> and, through
+  <span class="math">\(G=\mathrm{Id}+\Delta_t S\nabla g\)</span>, supervision of the policy update itself.
 </p>

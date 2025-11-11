@@ -1,27 +1,266 @@
-<h2>Experimental Setups</h2>
+<style>
+  /* Benchmarks table (booktabs-inspired, spacious, color-coded) */
+  .benchmarks-table {
+    --rule: #d0d7de;
+    --row-rule: #e6e9ed;
+    --thead-bg: #f6f8fa;
+    --stripe: #fbfcfd;
+    --group-bg: #f0f3f6;
+    --best: #c62828;    /* red (best) */
+    --second: #1565c0;  /* blue (second) */
+    --third: #2e7d32;   /* green (third) */
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    margin: 1rem 0 0.25rem;
+  }
+  .benchmarks-table caption {
+    caption-side: top;
+    text-align: left;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  .benchmarks-table thead th {
+    background: var(--thead-bg);
+    font-weight: 700;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--rule);
+    white-space: nowrap;
+  }
+  .benchmarks-table thead th.group {
+    background: var(--group-bg);
+    border-bottom: 0;
+    border-top: 2px solid var(--rule);
+    padding: 10px 14px;
+  }
+  .benchmarks-table thead th.split-col,
+  .benchmarks-table tbody td.split-col,
+  .benchmarks-table tfoot th.split-col {
+    border-left: 2px solid var(--rule);
+  }
+  .benchmarks-table tbody th[scope="row"] {
+    text-align: left;
+    font-weight: 700;
+    padding: 12px 14px;
+    white-space: nowrap;
+    position: sticky;
+    left: 0;
+    background: white; /* keeps row label readable when horizontally scrolling */
+  }
+  .benchmarks-table tbody td {
+    text-align: right;
+    padding: 12px 14px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--row-rule);
+  }
+  .benchmarks-table tbody tr:nth-child(odd) td {
+    background: var(--stripe);
+  }
+  .benchmarks-table .score.best {
+    font-weight: 800;
+    color: var(--best);
+  }
+  .benchmarks-table .score.second {
+    font-weight: 700;
+    color: var(--second);
+  }
+  .benchmarks-table .score.third {
+    font-weight: 700;
+    color: var(--third);
+  }
+  /* Make columns comfortably wide on large screens */
+  @media (min-width: 900px) {
+    .benchmarks-table td, .benchmarks-table th { min-width: 5.25rem; }
+    .benchmarks-table tbody th[scope="row"] { min-width: 7.5rem; }
+  }
+  /* Horizontal scroll if needed on small screens */
+  .benchmarks-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+</style>
+
+<h2 id="experiments">Experimental Setup</h2>
+
+<p>We evaluate <b>dfPO</b> on three scientific-computing tasks. Each task defines a functional objective
+<span class="math">$ \mathcal{F}(s) $</span> and we report terminal performance (lower is better).</p>
+
 <ul>
-    <li><b>(1) Surface Modeling</b> (object-level)</li>
-    <li><b>(2) Grid-Based Modeling</b> (system-level / PDE)</li>
-    <li><b>(3) Molecular Dynamics</b> (atomistic)</li>
-</ul>
-<ul>
-    <li><b>Baselines (12):</b> TRPO, PPO, SAC, DDPG, CrossQ, TQC — standard &amp; reward-shaping variants</li>
-    <li><b>Budgets:</b> 100k (surface, grid) / 5k (molecular)</li>
-    <li><b>Metric:</b> terminal cost $\\mathcal{F}(s)$ (lower is better)</li>
+  <li><b>(1) Surface Modeling</b> (object-level). State <em>s</em> is a set of 2D boundary control points;
+    cubic splines produce a smooth curve $\Gamma(s)$. The cost is
+    <span class="math">$ \mathcal{F}(s) := \mathcal{C}(\Gamma(s)) $</span> with
+    <span class="math">$ \mathcal{C}(\Gamma) = \dfrac{\int_{\mathbb{R}^2} |\delta 1_{\Gamma}|\, dx}{\sqrt{\int_{\mathbb{R}^2} 1_{\Gamma}\, dx}} $</span>.
+    Actions update boundary points; initial shapes are random polygons.</li>
+
+  <li><b>(2) Grid-Based Modeling</b> (system-level / PDE). Control acts on a coarse grid, while evaluation
+    is on a finer grid reconstructed via bicubic splines. With coarse values
+    <span class="math">$ f_{\mathrm{coarse}} $</span> forming state <em>s</em>, the cost is
+    <span class="math">$ \mathcal{F}(s) := \mathcal{C}(f_{\mathrm{finer}}) = \dfrac{\int_{\mathrm{grid}} |\delta f_{\mathrm{finer}}|\, dx}{\sqrt{\int_{\mathrm{grid}} f_{\mathrm{finer}}\, dx}} $</span>.
+  </li>
+
+  <li><b>(3) Molecular Dynamics</b> (atomistic). State <em>s</em> collects dihedral angles
+    <span class="math">$ (\phi_j,\psi_j)_j $</span>. Atomic coordinates are reconstructed deterministically,
+    and energy <span class="math">$ \mathcal{F}(s)=U(X((\phi_j,\psi_j)_j)) $</span> is computed via PyRosetta.
+    Actions perturb dihedral angles; initial states use small uniform ranges to test limited exploration.</li>
 </ul>
 
-<h2>Results: visualization</h2>
+<details>
+  <summary><b>Why these tasks?</b></summary>
+
+  <p>
+    We target scientific-computing settings where data are <em>expensive to simulate</em> and
+    <em>physics consistency</em> matters. To stress these constraints, we select three
+    representative families that recur across applications and scales.
+  </p>
+
+  <p><b>Surface Modeling — control over geometries.</b>
+    At the level of a single object, many problems involve refining a shape to achieve desired
+    physical properties (e.g., minimizing drag or maximizing lift for airfoils, improving
+    structural stability, or controlling thermal/mechanical behavior during materials
+    processing). These settings naturally expose a geometry-aware objective:
+    the state encodes boundary control points, a spline yields a smooth curve
+    <span class="math">$ \Gamma(s) $</span>, and the functional
+    <span class="math">$ \mathcal{F}(s)=\mathcal{C}(\Gamma(s)) $</span> measures shape quality.
+    This task family captures <i>shape optimization under control</i> with clear physics-aligned
+    rewards.
+  </p>
+
+  <p><b>Grid-Based Modeling — control under PDE constraints.</b>
+    Moving to macro-scale systems, dynamics are often modeled by controlled PDEs that evolve
+    fields such as temperature, pressure, or concentration. A canonical example is the heat
+    equation <span class="math">$ \tfrac{du}{dt}=\Delta u + f $</span>, where
+    <span class="math">$ f $</span> is a control input. Practical solvers discretize space:
+    control is applied on a <i>coarse</i> grid for efficiency, while evaluation uses a
+    <i>fine</i> reconstruction for accuracy. Our task mirrors this multiscale reality—policies act
+    on coarse discretizations; the objective <span class="math">$ \mathcal{F}(s) $</span> is
+    computed on fine reconstructions—reflecting applications from smart HVAC and data-center
+    cooling to industrial furnace regulation.
+  </p>
+
+  <p><b>Molecular Dynamics — atomistic energy minimization.</b>
+    At atomic scales, processes are not well captured by a single PDE. Instead, one works
+    directly with atomic structures and <i>nonlocal, energy-based</i> potentials. Here the
+    state is a set of dihedral angles, coordinates are reconstructed deterministically, and the
+    objective is the potential energy
+    <span class="math">$ \mathcal{F}(s)=U(X(\cdot)) $</span>. This setting is central to
+    biomolecular modeling (e.g., peptide/protein conformations) and therapeutic design, where
+    the goal is to discover low-energy, physically plausible configurations.
+  </p>
+
+  <p><b>Summary.</b> These tasks instantiate three core abstractions in scientific computing:
+  </p>
+  <ul>
+    <li>Optimization over geometric surfaces.</li>
+    <li>Grid-based control with PDE-style evaluations (coarse-to-fine).</li>
+    <li>Atomistic dynamics driven by energy potentials.</li>
+  </ul>
+</details>
+
+<p><b>Models.</b> We compare dfPO to 12 baselines: TRPO, PPO, SAC, DDPG, CrossQ, TQC — each in
+<i>standard</i> (S-) and <i>reward-shaped</i> variants. Standard baselines use
+<span class="math">$ r_t = -\mathcal{F}(s_t) $</span>; reward-shaped variants use
+<span class="math">$ r_t=\beta^{-t}\!\left(\tfrac{1}{2}\lVert a_t\rVert^2-\mathcal{F}(s_t)\right) $</span>.
+All baselines are implemented with Stable-Baselines3.</p>
+
+<p><b>Train/Test.</b> Limited-sample training: 100k steps for Surface & Grid, 5k for Molecular (energy is costly to evaluate).
+We evaluate over 200 test episodes with a normalized horizon <span class="math">$ T=1 $</span>. Experiments run on a single NVIDIA A100.</p>
+
+<p><b>Metric.</b> We report the terminal objective
+<span class="math">$ \mathcal{F}(s) $</span> (lower is better), computed on held-out trajectories. Qualitatively,
+we also assess whether trajectories remain physically plausible.</p>
+
+<h2 id="results-viz">Visualization</h2>
 <div class="figure-row">
-    <img class="figure" src="images/benchmarks_surface.png" alt="Surface modeling" />
-    <img class="figure" src="images/benchmarks_grid.png" alt="Grid/PDE" />
-    <img class="figure" src="images/benchmarks_molecule.png" alt="Molecular dynamics" />
+  <img class="figure" src="images/benchmarks_surface.png" alt="Surface modeling: evaluation costs vs. episodes" />
+  <img class="figure" src="images/benchmarks_grid.png" alt="Grid/PDE: evaluation costs vs. episodes" />
+  <img class="figure" src="images/benchmarks_molecule.png" alt="Molecular dynamics: evaluation costs vs. episodes" />
 </div>
-<p class="small">Put your PNGs under <code>/images</code>. Filenames above match your slide.</p>
 
-<h2>Results: numerical (lower is better)</h2>
-<ul>
-    <li>dfPO achieves the best terminal costs on all 3 tasks; next-best varies (CrossQ/TQC/DDPG/TRPO).</li>
-    <li>Reward-shaping helps baselines but remains below dfPO.</li>
-    <li>dfPO explores to lower costs with moderate variance.</li>
-</ul>
-<!-- You can later embed an HTML table here if you want the full numbers. -->
+<p><b>Results.</b> dfPO achieves the best terminal cost on all three tasks. No single baseline dominates across domains:
+CrossQ, TQC, DDPG, and TRPO alternate as runners-up. Reward shaping improves most baselines but still lags dfPO.
+The learning curves show dfPO exploring toward lower objectives with moderate variance; on Grid the advantage is clear,
+while on Surface and Molecular the trajectories are sometimes less smooth yet converge to lower-energy states.</p>
+
+<h2 id="results-numeric">Numerical Benchmarks (lower is better)</h2>
+
+<div class="benchmarks-wrap">
+  <table class="benchmarks-table" aria-label="Final mean evaluation costs at terminal step">
+    <caption>Final mean evaluation costs ( \( \mathcal{F}(s) \) at terminal step). Lower is better.</caption>
+    <thead>
+      <tr>
+        <th></th>
+        <th class="group" colspan="7">Standard Algorithms</th>
+        <th class="group split-col" colspan="6">Reward-Shaping Variants</th>
+      </tr>
+      <tr>
+        <th scope="col">Task</th>
+        <th scope="col">dfPO</th>
+        <th scope="col">S-TRPO</th>
+        <th scope="col">S-PPO</th>
+        <th scope="col">S-SAC</th>
+        <th scope="col">S-DDPG</th>
+        <th scope="col">S-CrossQ</th>
+        <th scope="col">S-TQC</th>
+        <th scope="col" class="split-col">TRPO</th>
+        <th scope="col">PPO</th>
+        <th scope="col">SAC</th>
+        <th scope="col">DDPG</th>
+        <th scope="col">CrossQ</th>
+        <th scope="col">TQC</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">Surface</th>
+        <td><span class="score best">6.32</span></td>
+        <td>7.74</td>
+        <td>19.17</td>
+        <td>8.89</td>
+        <td>9.54</td>
+        <td>6.93</td>
+        <td>6.51</td>
+        <td class="split-col"><span class="score third">6.48</span></td>
+        <td>20.61</td>
+        <td>7.41</td>
+        <td>15.92</td>
+        <td><span class="score second">6.42</span></td>
+        <td>6.67</td>
+      </tr>
+      <tr>
+        <th scope="row">Grid</th>
+        <td><span class="score best">6.06</span></td>
+        <td><span class="score second">6.48</span></td>
+        <td>7.05</td>
+        <td>7.17</td>
+        <td>6.68</td>
+        <td>7.07</td>
+        <td>6.71</td>
+        <td class="split-col">7.10</td>
+        <td>7.11</td>
+        <td>7.00</td>
+        <td><span class="score third">6.58</span></td>
+        <td>7.23</td>
+        <td>7.12</td>
+      </tr>
+      <tr>
+        <th scope="row">Mol. Dyn.</th>
+        <td><span class="score best">53.34</span></td>
+        <td>1842.30</td>
+        <td>1842.30</td>
+        <td>126.73</td>
+        <td>82.95</td>
+        <td>338.07</td>
+        <td>231.98</td>
+        <td class="split-col">1842.28</td>
+        <td>1842.31</td>
+        <td>1361.31</td>
+        <td><span class="score second">68.20</span></td>
+        <td>923.90</td>
+        <td><span class="score third">76.87</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="small">Code: <a href="https://github.com/mpnguyen2/dfPO" target="_blank" rel="noopener">github.com/mpnguyen2/dfPO</a></p>
