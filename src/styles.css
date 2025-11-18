@@ -122,20 +122,15 @@ body {
     background: #0f0f0f;
     color: #fff;
     margin-top: 0;
-
-    /* full-bleed across the viewport, even inside a centered container */
     position: relative;
-    left: -8.5%;
-    right: 10%;
-    margin-left: 5vw;
-    margin-right: 5vw;
-    width: 100vw;
+    margin-left: -5%;
+    margin-right: -25%;
 }
 
 .hero-inner {
     max-width: var(--container-w);
     margin: 0 auto;
-    padding: 64px 24px 56px;
+    padding: clamp(32px, 6vw, 56px) 24px;
     display: grid;
     grid-template-columns: 1.2fr .8fr;
     gap: 32px;
@@ -182,12 +177,14 @@ body {
     margin-top: 6px;
 }
 
+.meta time {
+    font-variant-numeric: tabular-nums;
+}
+
 .hero-art {
     width: 100%;
-    height: 200px;
-    /* fixed band height; tweak 160–240px to taste */
+    height: clamp(160px, 18vw, 220px);
     object-fit: cover;
-    /* crop to fill the rectangle nicely */
     border-radius: 8px;
     display: block;
 }
@@ -249,12 +246,10 @@ hr {
     grid-template-columns: minmax(0, calc(100% - 260px - 32px)) 260px;
     gap: 32px;
     width: 100%;
-    /* take full container width */
     max-width: var(--container-w);
     margin: 24px auto 0;
-    padding: 0 200px;
+    padding: 0 clamp(24px, 10vw, 200px);
     justify-content: space-between;
-    /* push right rail to the far edge */
 }
 
 /* Pin the card to the right edge and keep width tight */
@@ -296,6 +291,11 @@ hr {
 @media (max-width:1100px) {
     .article-grid {
         grid-template-columns: 1fr;
+    }
+
+    .title {
+        font-size: clamp(22px, 7vw, 36px);
+        line-height: 1.06;
     }
 
     .quicklinks {

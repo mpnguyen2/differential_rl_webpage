@@ -142,7 +142,9 @@ export default function App() {
               <span className="title-line">Control Approach to</span>
               <span className="title-line">Reinforcement Learning</span>
             </h1>
-            <p className="meta">2025 · Minh Nguyen<sup>★</sup>, Chandrajit Bajaj</p>
+            <p className="meta">
+              <time>2025</time>&nbsp;●&nbsp;Minh Nguyen, Chandrajit Bajaj
+            </p>
           </div>
           <img className="hero-art" src="hero-art.png" alt="" />
         </div>
