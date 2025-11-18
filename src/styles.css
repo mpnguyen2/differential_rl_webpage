@@ -304,3 +304,16 @@ hr {
         max-width: none;
     }
 }
+
+.byline.oneline {
+    display: flex;
+    align-items: baseline;
+    /* small gap near authors */
+    flex-wrap: nowrap;
+    /* force one line */
+}
+
+.byline.oneline .affil {
+    margin-left: auto;
+    /* push affiliation to the far right */
+}
